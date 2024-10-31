@@ -1,0 +1,165 @@
+Documentação do Projeto de Monitoramento de Acessos AnyDesk
+1. Visão Geral
+Este projeto é uma aplicação Python para monitorar e gerenciar acessos realizados pelo software AnyDesk. A aplicação detecta tentativas de conexão do AnyDesk, armazenando os registros no Firebase, onde os acessos são identificados pelo ID remoto do AnyDesk. A interface gráfica permite nomear IDs, resolver conflitos, e exibir acessos ignorados e ocultos.
+
+Principais Funcionalidades
+Monitoramento de acessos em tempo real pelo log do AnyDesk.
+Armazenamento Firebase para persistência de dados.
+Interface gráfica (GUI) para exibição dos acessos e ações de gerenciamento.
+Resolução de duplicidade ao associar nomes aos IDs remotos.
+Configuração de IDs Ignorados e Acessos Ocultos para personalização.
+2. Configuração e Instalação
+2.1. Pré-requisitos
+Python 3.x
+Bibliotecas Python: Instale com o seguinte comando:
+bash
+Copiar código
+pip install firebase-admin tk
+Arquivo de Credenciais do Firebase: Coloque o arquivo de credenciais do Firebase (JSON) em interface/ e nomeie como acesso-anydesk-firebase-adminsdk-a2j5r-617aebce54.json.
+2.2. Instalação e Execução
+Clone o repositório do projeto:
+bash
+Copiar código
+git clone <URL-do-repositório>
+Navegue até o diretório do projeto e execute:
+bash
+Copiar código
+python interface/main.py
+2.3. Configuração do Firebase
+No console do Firebase, crie um projeto e configure uma coleção chamada acessos.
+Certifique-se de que o arquivo JSON de credenciais é válido e possui permissões de leitura e gravação para a coleção acessos.
+3. Estrutura de Arquivos
+graphql
+Copiar código
+Projeto Acesso AnyDesk/
+├── interface/
+│   ├── AnyDesk.exe                # Executável do AnyDesk para integração
+│   ├── main.py                    # Script principal da aplicação
+│   ├── firebase_service.py        # Integração com Firebase
+│   ├── duplicate_resolver.py      # Resolução de duplicidade de nomes
+│   ├── setup.py                   # Configuração do projeto
+│   ├── icones/                    # Ícones da interface
+│   │   ├── open_icon.png
+│   │   ├── hide_icon.png
+│   │   └── ...
+│   ├── hidden_accesses.json       # IDs ocultos
+│   ├── ignored_ids.json           # IDs ignorados
+│   └── logs/
+│       └── error_log.log          # Log de erros
+└── README.md                      # Documentação do projeto
+4. Uso da Aplicação
+4.1. Inicialização
+Para iniciar a aplicação, execute o script main.py:
+
+bash
+Copiar código
+python interface/main.py
+4.2. Interface Gráfica
+Monitoramento em Tempo Real: A aplicação monitora o log do AnyDesk continuamente e exibe novos IDs detectados.
+Janela Principal:
+Exibe uma lista dos IDs monitorados com o nome associado.
+Possui botões para abrir, ocultar e ignorar IDs.
+Exemplo de Uso da Interface
+Abrir o AnyDesk com um ID:
+
+Na tela principal, insira um ID e clique em “Abrir AnyDesk”. O aplicativo tentará iniciar o AnyDesk com o ID fornecido.
+python
+Copiar código
+abrir_anydesk(remote_id='123456789')
+Exemplo de código associado:
+python
+Copiar código
+def abrir_anydesk(remote_id):
+    subprocess.Popen(["AnyDesk.exe", remote_id])
+Nomear Acessos Detectados:
+
+Quando um novo ID é detectado, uma janela solicita ao usuário um nome para associar ao ID.
+Se o nome já estiver em uso, o sistema perguntará como resolver a duplicidade.
+Ocultar e Ignorar IDs:
+
+IDs podem ser ocultos ou ignorados. O usuário pode selecioná-los na lista e escolher a ação desejada.
+IDs ignorados não serão mais monitorados, enquanto IDs ocultos não aparecem na lista principal.
+python
+Copiar código
+def ocultar_selecionado():
+    hidden_accesses[remote_id] = saved_accesses.pop(remote_id)
+    save_hidden_accesses()
+4.3. Resolução de Duplicidade
+Para evitar duplicidades de nomes, o sistema exibe um prompt caso um novo ID tente usar um nome já associado a outro ID. O usuário pode optar por:
+
+Manter o nome e renomear o ID duplicado.
+Escolher um novo nome para o ID duplicado.
+Exemplo de resolução de duplicidade:
+
+python
+Copiar código
+resolve_duplicates({'João': ['123456789', '987654321']})
+O sistema exibirá um prompt como o abaixo:
+vbnet
+Copiar código
+O nome 'João' está associado aos IDs: 123456789 e 987654321.
+Deseja renomear um deles?
+4.4. Ignorar e Ocultar IDs
+Ignorar ID: IDs ignorados não serão exibidos e podem ser removidos ou restaurados posteriormente.
+Ocultar ID: Acessos ocultos são salvos em hidden_accesses.json e podem ser restaurados na guia “Acessos Ocultos”.
+5. Detalhamento das Funções
+5.1. main.py
+Função monitor_anydesk_log():
+
+Monitora o arquivo de log do AnyDesk e chama process_logs para cada nova entrada.
+Função process_logs():
+
+Processa cada linha do log para extrair IDs, chama a função de validação, e atualiza a interface conforme necessário.
+Exemplo:
+
+python
+Copiar código
+def process_logs(log_lines):
+    for line in log_lines:
+        if "Connecting to" in line:
+            remote_id = extract_id(line)
+            if remote_id not in saved_accesses:
+                name = get_name_for_id(remote_id)
+                save_access(remote_id, name)
+5.2. firebase_service.py
+Módulo de integração com o Firebase:
+
+load_saved_accesses(): Carrega acessos salvos do Firebase e retorna um dicionário {remote_id: name}.
+save_access(): Salva um novo ID remoto com o nome fornecido.
+delete_access(): Remove um ID específico.
+iniciar_listener(): Observa alterações na coleção acessos no Firebase.
+Exemplo:
+python
+Copiar código
+def save_access(remote_id, name):
+    db.collection('acessos').document(remote_id).set({'nome': name})
+5.3. duplicate_resolver.py
+Funções para detectar e resolver duplicidades de IDs e nomes:
+
+find_duplicate_names(): Retorna um dicionário com nomes duplicados.
+resolve_duplicates(): Interface que apresenta ao usuário as opções para resolver conflitos.
+Exemplo:
+
+python
+Copiar código
+def resolve_duplicates(duplicates):
+    for name, ids in duplicates.items():
+        root = tk.Tk()
+        choice = messagebox.askquestion("Resolver Duplicidade", f"O nome '{name}' está associado aos IDs: {ids}.")
+        # Lógica de resolução...
+6. Logs e Erros
+6.1. Logs de Erros
+Erros são registrados no arquivo logs/error_log.log, útil para diagnósticos e melhorias.
+
+Exemplo de Log de Erro:
+plaintext
+Copiar código
+[2024-10-28 14:35] Erro ao conectar com o Firebase: Timeout na conexão
+7. Sugestões de Segurança e Manutenção
+Proteção de Credenciais: Armazene o arquivo JSON de credenciais fora do diretório principal.
+Logging Detalhado: Adicione logging para acompanhar o desempenho e depurar problemas futuros.
+8. Conclusão e Próximos Passos
+Este projeto oferece um monitoramento eficaz para acessos AnyDesk com interface gráfica e armazenamento no Firebase. Para funcionalidades avançadas, considere:
+
+Migrar a interface gráfica para um framework mais robusto (como Electron).
+Melhorar o sistema de notificações e integrar alertas para acessos específicos.
